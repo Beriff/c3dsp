@@ -17,15 +17,16 @@ macro bool is_power_of_2(int n) @private
 
 fn Complex[] fft(Complex[] x)
 {
-    if(is_power_of_2(x.len)) {
-        return stockham_fft(x,1);
-    }
+	if (is_power_of_2(x.len))
+	{
+		return stockham_fft(x, 1);
+	}
 
-    return naive_ft(x);
+	return bluestein(x);
 }
 
 <*
-    Naive FT approach based on definition
+ Naive FT approach based on definition
 *>
 fn Complex[] naive_ft(Complex[] x) @private
 {
@@ -55,11 +56,13 @@ fn Complex[] stockham_fft(Complex[] x, int dir)
 		return x;
 	}
 
-	Complex[] out = mem::new_array(Complex, n);
-	out = @clone_slice(x);
+	Complex[] out = @clone_slice(x);
 
 	Complex[] tmp = mem::new_array(Complex, n);
-    defer {free(tmp);};
+	defer
+	{
+		free(tmp);
+	}
 	for (int stage = (int)std::math::log2((double)n); stage >= 1; stage--)
 	{
 		int nhalf = n >> stage; // nhalf = n / 2^stage
@@ -88,9 +91,129 @@ fn Complex[] stockham_fft(Complex[] x, int dir)
 			}
 		}
 
+		free(out);
 		out = @clone_slice(tmp);
 	}
 
 	return out;
 }
 
+<*
+ Bluestein algorithm for prime-n sized FFTs, i.e. pad input to a size m = 2^p >= 2^(n-1)
+*>
+fn Complex[] bluestein_ftt(Complex[] x)
+{
+	int n = x.len;
+	if (n == 0)
+	{
+		return x;
+	}
+
+	// Compute m = smallest power of 2 >= 2*n - 1 (padding for convolution)
+	int nn_val = 2 * n - 1;
+	double log_val = std::math::log2((double)nn_val);
+	int m = 1 << (int)std::math::floor(log_val);
+	if (m < nn_val)
+	{
+		m <<= 1;
+	}
+
+	// y = padded input + chirp pre-multiplication
+	Complex[] y = mem::new_array(Complex, m);
+	for (int i = 0; i < n; i++)
+	{
+		y[i] = x[i];
+	}
+	defer
+	{
+		free(y);
+	}
+
+	// w = chirp filter (symmetric)
+	Complex[] w = mem::new_array(Complex, m);
+	w[0] = (Complex) { .r = 1.0, .c = 0.0 };
+	defer
+	{
+		free(w);
+	}
+
+	double a0 = std::math::PI / (double)n;
+	for (int i = 1; i < n; i++)
+	{
+		Complex angle = complex_exp(a0 * (double)i * (double)i);
+		w[i] = w[m - i] = angle;
+
+		// y[i] *= exp(-j * theta)
+		y[i] = y[i] * (Complex) { .r = angle.r, .c = -angle.c };
+	}
+
+	// Forward FFT (unnormalized)
+	Complex[] y_fft = stockham_fft(y, 1);
+	free(y);
+	y = y_fft;
+
+	// FFT of the chirp filter
+	Complex[] w_fft = stockham_fft(w, 1);
+	defer
+	{
+		free(w_fft);
+	}
+
+	// Pointwise multiply (circular convolution)
+	for (int i = 0; i < m; i++)
+	{
+		y[i] *= w_fft[i];
+	}
+
+	// Inverse FFT (unnormalized)
+	Complex[] y_ifft = stockham_fft(y, -1);
+	free(y);
+	y = y_ifft;
+
+	// Final scaling with conjugate chirp / m
+	for (int i = 0; i < n; i++)
+	{
+		Complex scaled_conj = (Complex) { .r = w[i].r * 1.0 / (double)m, .c = -w[i].c * 1.0 / (double)m };
+		y[i] *= scaled_conj;
+	}
+
+	// Return only first n elements
+	Complex[] res = @clone_slice(y[0..n - 1]);
+
+	return res;
+}
+
+
+<*
+ Inverse bluestein ftt
+*>
+fn Complex[] bluesteini_ftt(Complex[] x)
+{
+	int n = x.len;
+	if (n == 0)
+	{
+		return x;
+	}
+
+	// Conjugate input
+	Complex[] y = mem::new_array(Complex, n);
+	defer
+	{
+		free(y);
+	}
+	for (int i = 0; i < n; i++)
+	{
+		y[i] = (Complex) { .r = x[i].r, .c = -x[i].c };
+	}
+
+	// Bluestein forward on conjugated input
+	Complex[] res = bluestein(y);
+
+	// Conjugate output and scale by 1/n
+	for (int i = 0; i < n; i++)
+	{
+		res[i] = (Complex) { .r = res[i].r * 1.0 / (double)n, .c = -res.[i].c * 1 / (double)n };
+	}
+
+	return res;
+}
