@@ -1,4 +1,6 @@
 module c3dsp;
+
+import c3dsp::visualize;
 import std::io;
 import std::math::complex;
 
@@ -14,5 +16,10 @@ fn int main(String[] args)
 	io::printn(expected);
 
 	free(res);
+
+	visualize::VisualizationApp app = {};
+	app.new(800,600);
+	app.beginUpdating();
+
 	return 0;
 }
