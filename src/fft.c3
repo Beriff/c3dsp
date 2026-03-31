@@ -6,7 +6,7 @@ import std::io;
 
 
 <*
- fft function calculate the discrete Fourier transform of x or the inverse transform if inverse is true.
+ fft function calculate the discrete Fourier transform of x or the inverse(normalized) transform if inverse is true.
 
  Note that algorithm work most efficient when the x.len is a power of 2.
 *>
