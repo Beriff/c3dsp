@@ -18,7 +18,7 @@ macro bool is_power_of_2(int n) @private
 fn Complex[] fft(Complex[] x)
 {
     if(is_power_of_2(x.len)) {
-        return stockham_fft(x);
+        return stockham_fft(x,1);
     }
 
     return naive_ft(x);
@@ -45,8 +45,9 @@ fn Complex[] naive_ft(Complex[] x) @private
 
 <*
  Stockham fft is implementation of discrete Fourier transform. It is very efficient, but limited to x.len = 2^n
+ Pass dir = 1 for forward unnormalized and -1 for inverse unnormalized
 *>
-fn Complex[] stockham_fft(Complex[] x)
+fn Complex[] stockham_fft(Complex[] x, int dir)
 {
 	int n = x.len;
 	if (!is_power_of_2(n))
@@ -67,7 +68,7 @@ fn Complex[] stockham_fft(Complex[] x)
 		for (int p = 0; p < nhalf; p++)
 		{
 			// Twiddle factor. It is constant for this p (applied only to the "odd" leg)
-			Complex w = complex_exp(-2.0 * std::math::PI * p / (2.0 * nhalf));
+			Complex w = complex_exp(-2.0 * std::math::PI * p / (2.0 * nhalf) * (double)dir);
 
 			for (int q = 0; q < stride; q++)
 			{
