@@ -5,6 +5,26 @@ import std::math;
 import std::io;
 
 
+<*
+ fft function calculate the discrete Fourier transform of x or the inverse transform if inverse is true.
+
+ Note that algorithm work most efficient when the x.len is a power of 2.
+*>
+fn Complex[] fft(Complex[] x, bool inverse)
+{
+	if (is_power_of_2(x.len))
+	{
+		Complex[] res =  stockham_fft(x, (inverse) ? -1 : 1);
+        for (int i = 0; i < res.len; i++)
+        {
+            res[i] *= (Complex){ .r = 1.0/res.len, .c = 0.0 };
+        }
+ 
+	}
+
+	return (inverse) ? bluesteini_ftt(x) : bluestein_ftt(x);
+}
+
 fn Complex complex_exp(double x) @private
 {
 	return (Complex) { .r = math::cos(x), .c = math::sin(x) };
@@ -15,20 +35,10 @@ macro bool is_power_of_2(int n) @private
 	return !(n & (n - 1) != 0 || n < 1);
 }
 
-fn Complex[] fft(Complex[] x)
-{
-	if (is_power_of_2(x.len))
-	{
-		return stockham_fft(x, 1);
-	}
-
-	return bluestein(x);
-}
-
 <*
- Naive FT approach based on definition
+ Naive FT approach based on definition.
 *>
-fn Complex[] naive_ft(Complex[] x) @private
+fn Complex[] naive_ft(Complex[] x, bool inverse) @private
 {
 	int n = x.len;
 	Complex[] out = mem::new_array(Complex, n);
@@ -37,7 +47,7 @@ fn Complex[] naive_ft(Complex[] x) @private
 	{
 		for (int i = 0; i < n; i++)
 		{
-			out[k] += x[i] * complex_exp(-2.0 * math::PI * k * i / n);
+			out[k] += (Complex) { .r = (inverse) ? (1.0 / n) : (1.0), .c = 0.0} * x[i] * complex_exp(-2.0 * math::PI * k * i / n);
 		}
 	}
 
@@ -45,8 +55,8 @@ fn Complex[] naive_ft(Complex[] x) @private
 }
 
 <*
- Stockham fft is implementation of discrete Fourier transform. It is very efficient, but limited to x.len = 2^n
- Pass dir = 1 for forward unnormalized and -1 for inverse unnormalized
+ Stockham fft is implementation of discrete Fourier transform. It is very efficient, but limited to x.len = 2^n.
+ Pass dir = 1 for forward unnormalized and -1 for inverse unnormalized.
 *>
 fn Complex[] stockham_fft(Complex[] x, int dir)
 {
@@ -99,7 +109,7 @@ fn Complex[] stockham_fft(Complex[] x, int dir)
 }
 
 <*
- Bluestein algorithm for prime-n sized FFTs, i.e. pad input to a size m = 2^p >= 2^(n-1)
+ Bluestein algorithm for prime-n sized FFTs, i.e. pad input to a size m = 2^p >= 2^(n-1).
 *>
 fn Complex[] bluestein_ftt(Complex[] x)
 {
@@ -185,7 +195,7 @@ fn Complex[] bluestein_ftt(Complex[] x)
 
 
 <*
- Inverse bluestein ftt
+ Inverse bluestein ftt.
 *>
 fn Complex[] bluesteini_ftt(Complex[] x)
 {
@@ -207,7 +217,7 @@ fn Complex[] bluesteini_ftt(Complex[] x)
 	}
 
 	// Bluestein forward on conjugated input
-	Complex[] res = bluestein(y);
+	Complex[] res = bluestein_ftt(y);
 
 	// Conjugate output and scale by 1/n
 	for (int i = 0; i < n; i++)
