@@ -2,7 +2,6 @@ module c3dsp;
 
 import std::math::complex;
 import std::math;
-import std::io;
 
 
 <*
@@ -14,13 +13,16 @@ fn Complex[] fft(Complex[] x, bool inverse)
 {
 	if (is_power_of_2(x.len))
 	{
-		Complex[] res =  stockham_fft(x, (inverse) ? -1 : 1);
-        for (int i = 0; i < res.len; i++)
-        {
-            res[i] *= (Complex){ .r = 1.0/res.len, .c = 0.0 };
-        }
+		Complex[] res = stockham_fft(x, (inverse) ? -1 : 1);
+		if (inverse)
+		{
+			for (int i = 0; i < res.len; i++)
+			{
+				res[i] *= (Complex) { .r = 1.0 / res.len, .c = 0.0 };
+			}
+		}
 
-        return res;
+		return res;
 	}
 
 	return (inverse) ? bluesteini_ftt(x) : bluestein_ftt(x);
@@ -48,7 +50,8 @@ fn Complex[] naive_ft(Complex[] x, bool inverse) @private
 	{
 		for (int i = 0; i < n; i++)
 		{
-			out[k] += (Complex) { .r = (inverse) ? (1.0 / n) : (1.0), .c = 0.0} * x[i] * complex_exp(-2.0 * math::PI * k * i / n);
+			out[k] += (Complex) { .r = (inverse) ? (1.0 / n) : (1.0), .c = 0.0 } * x[i]
+				* complex_exp(-2.0 * math::PI * k * i / n);
 		}
 	}
 
