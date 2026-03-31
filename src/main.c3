@@ -4,6 +4,15 @@ import std::math::complex;
 
 fn int main(String[] args)
 {
-	io::printn(fft({{0,0},{1,0},{2,0}}));
+	Complex[] signal = { { 1, 0 }, { 2, 1 }, { 3, -1 }, { 4, 0 } };
+	Complex[] expected = { { 10, 0 }, { -1, 3 }, { -2, -2 }, { -3, -1 } };
+	Complex[] res = fft(signal, false);
+
+	io::print("Result: ");
+	io::print(res);
+	io::print("\nExpected: ");
+	io::printn(expected);
+
+	free(res);
 	return 0;
 }
