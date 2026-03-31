@@ -19,7 +19,8 @@ fn Complex[] fft(Complex[] x, bool inverse)
         {
             res[i] *= (Complex){ .r = 1.0/res.len, .c = 0.0 };
         }
- 
+
+        return res;
 	}
 
 	return (inverse) ? bluesteini_ftt(x) : bluestein_ftt(x);
