@@ -58,6 +58,7 @@ fn Complex[] stockham_fft(Complex[] x)
 	out = @clone_slice(x);
 
 	Complex[] tmp = mem::new_array(Complex, n);
+    defer {free(tmp);};
 	for (int stage = (int)std::math::log2((double)n); stage >= 1; stage--)
 	{
 		int nhalf = n >> stage; // nhalf = n / 2^stage
